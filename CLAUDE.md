@@ -4,17 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project: Stoffel Bot
 
-This appears to be a new project directory. As the codebase develops, this file should be updated with:
+A Discord bot project with version tracking and development logging.
 
-1. **Build and Development Commands** - Once established, include commands for:
-   - Installing dependencies
-   - Running the bot
-   - Testing functionality
-   - Linting and formatting
+## Commands
+
+### /update (or run `update.bat`)
+Updates documentation files with current timestamps and pushes changes to GitHub.
+- Pulls latest changes from GitHub
+- Stages CLAUDE.md, CHANGELOG.md, and DEVLOG.md
+- Creates timestamped commit
+- Pushes to GitHub
+
+**Important**: DO NOT automatically push to git. Only push when the /update command is explicitly called.
+
+## Development Guidelines
+
+1. **Version Control**
+   - Track versions in CHANGELOG.md (currently at v0.01)
+   - Log all development activities with timestamps in DEVLOG.md
+   - Only push to GitHub via the /update command
 
 2. **Architecture Overview** - To be documented as the bot's structure emerges
 
 ## Notes
 
-- This is currently an empty project directory
-- Update this file as the codebase grows with specific architectural decisions and command patterns
+- Manual git push policy: Only push when /update command is executed
+- All documentation updates should include timestamps
