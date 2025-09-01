@@ -31,6 +31,11 @@ Updates documentation files with current timestamps and pushes changes to GitHub
 
 3. **Architecture Overview** - To be documented as the bot's structure emerges
 
+4. **Language Requirements**
+   - All frontend content should be available in Portuguese and English
+   - Support both USA and Brasil markets
+   - Provide language toggle functionality
+
 ## Android Development Rules
 
 When working on Android app development, follow these rules:
