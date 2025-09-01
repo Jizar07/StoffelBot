@@ -22,3 +22,11 @@ This file tracks the development progress of Stoffel Bot with timestamped entrie
 - Configured automatic timestamp capture for commits
 - Updated CLAUDE.md with /update command documentation
 - Established manual git push policy (only via /update command)
+
+### 11:45 - Discord Bot Configuration
+- Added Discord application credentials (Client ID: 1045015428180746332)
+- Created .env file for secure credential storage
+- Created .env.example template for repository sharing
+- Added .gitignore to protect sensitive data
+- Configured OAuth2 redirect URIs for local and production environments
+- Set up application structure for Discord bot development
