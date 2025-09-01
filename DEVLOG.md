@@ -30,3 +30,34 @@ This file tracks the development progress of Stoffel Bot with timestamped entrie
 - Added .gitignore to protect sensitive data
 - Configured OAuth2 redirect URIs for local and production environments
 - Set up application structure for Discord bot development
+
+### 14:20 - PayPal Integration Implementation
+- Implemented complete PayPal subscription system
+- Created PayPal sandbox account and configured API credentials
+- Set up subscription plans: $6.99/month and $49.99/year
+- Integrated PayPal SDK with custom subscription button component
+- Implemented subscription management using localStorage for demo
+
+### 15:30 - Frontend Architecture Migration  
+- Migrated from App Router to Pages Router due to compatibility issues
+- Fixed file conflicts between routing systems
+- Implemented proper server-side rendering with getStaticProps
+- Added bilingual support with next-i18next (English/Portuguese)
+
+### 16:45 - Authentication & Session Management
+- Integrated NextAuth.js for Discord OAuth
+- Fixed session persistence issues in Pages Router
+- Implemented proper client-side redirects for unauthenticated users
+- Added session-based subscription checking
+
+### 17:15 - PayPal Component Issues Resolution
+- Fixed PayPal component destruction errors ("zoid destroyed all components")
+- Replaced react-paypal-js with direct PayPal SDK integration
+- Implemented proper component re-rendering when plan selection changes
+- Added error handling for payment failures and cancellations
+
+### 18:00 - Testing Infrastructure
+- Added development testing functionality to bypass PayPal payments
+- Implemented "Simulate Subscription" and "Clear All Data" buttons
+- Fixed client-side subscription status checking for localStorage
+- Resolved server-side rendering conflicts with browser storage
