@@ -1,0 +1,25 @@
+{
+  "title": "Stoffel Bot Dashboard",
+  "botStatus": "Bot Status",
+  "status": "Status",
+  "online": "● Online",
+  "offline": "● Offline",
+  "servers": "Servers",
+  "users": "Users",
+  "uptime": "Uptime",
+  "quickActions": "Quick Actions",
+  "botSettings": "Bot Settings",
+  "restartBot": "Restart Bot",
+  "viewLogs": "View Logs",
+  "updateDocumentation": "Update Documentation",
+  "deployChanges": "Deploy Changes",
+  "availableCommands": "Available Commands",
+  "recentActivity": "Recent Activity",
+  "activities": {
+    "commandExecuted": "Command executed",
+    "userJoined": "New user joined server",
+    "documentationUpdated": "Documentation updated",
+    "botRestarted": "Bot restarted successfully"
+  },
+  "footer": "Stoffel Bot v0.01 | Running on port 3141"
+}

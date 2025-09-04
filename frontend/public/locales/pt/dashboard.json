@@ -1,0 +1,25 @@
+{
+  "title": "Painel do Stoffel Bot",
+  "botStatus": "Status do Bot",
+  "status": "Status",
+  "online": "● Online",
+  "offline": "● Offline",
+  "servers": "Servidores",
+  "users": "Usuários",
+  "uptime": "Tempo ativo",
+  "quickActions": "Ações Rápidas",
+  "botSettings": "Configurações do Bot",
+  "restartBot": "Reiniciar Bot",
+  "viewLogs": "Ver Logs",
+  "updateDocumentation": "Atualizar Documentação",
+  "deployChanges": "Implantar Alterações",
+  "availableCommands": "Comandos Disponíveis",
+  "recentActivity": "Atividade Recente",
+  "activities": {
+    "commandExecuted": "Comando executado",
+    "userJoined": "Novo usuário entrou no servidor",
+    "documentationUpdated": "Documentação atualizada",
+    "botRestarted": "Bot reiniciado com sucesso"
+  },
+  "footer": "Stoffel Bot v0.01 | Rodando na porta 3141"
+}

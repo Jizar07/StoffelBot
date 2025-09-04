@@ -1,0 +1,86 @@
+{
+  "1234567890123456789": {
+    "atlanta": {
+      "modalTitle": "Bem Vindo !!!",
+      "modalDescription": "Please fill out the form below to register for this server.",
+      "buttonText": "📝 Registrar",
+      "embedColor": "#0099FF",
+      "questions": [
+        {
+          "label": "Nome completo no condado",
+          "placeholder": "",
+          "style": "short",
+          "required": true,
+          "maxLength": 5
+        },
+        {
+          "label": "Nome completo em Nova York",
+          "placeholder": "",
+          "style": "short",
+          "required": true,
+          "maxLength": 5
+        },
+        {
+          "label": "Idade em Nova York",
+          "placeholder": "",
+          "style": "short",
+          "required": true,
+          "maxLength": 2
+        },
+        {
+          "label": "Pombo",
+          "placeholder": "",
+          "style": "short",
+          "required": true,
+          "maxLength": 4
+        }
+      ],
+      "roles": [],
+      "nicknamePrefix": "{nome completo}",
+      "nicknamePostfix": "| {pombo}",
+      "createChannels": true,
+      "channelCategory": "",
+      "channelPrefix": "",
+      "channelPostfix": "",
+      "channelWelcomeMessage": "",
+      "successMessage": "Thank you for registering! Welcome to the server.",
+      "logChannel": "",
+      "lastUpdated": "2025-09-01T19:43:43.485Z"
+    }
+  },
+  "382905753247154176": {
+    "atlanta": {
+      "modalTitle": "Welcome to Stoffel Technology!",
+      "modalDescription": "Please fill out the form below to register for this server.",
+      "buttonText": "?? Register",
+      "embedColor": "#0099FF",
+      "questions": [
+        {
+          "label": "Full Name",
+          "placeholder": "Enter your full name",
+          "style": "short",
+          "required": true,
+          "maxLength": 50
+        },
+        {
+          "label": "Role/Position",
+          "placeholder": "Your role or position",
+          "style": "short",
+          "required": false,
+          "maxLength": 30
+        }
+      ],
+      "roles": [],
+      "nicknamePrefix": "",
+      "nicknamePostfix": "",
+      "createChannels": false,
+      "channelCategory": "",
+      "channelPrefix": "",
+      "channelPostfix": "",
+      "channelWelcomeMessage": "",
+      "successMessage": "Thank you for registering! Welcome to Stoffel Technology.",
+      "logChannel": "",
+      "lastUpdated": "2025-09-01T19:48:54.620Z"
+    }
+  }
+}

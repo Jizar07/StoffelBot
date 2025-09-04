@@ -1,0 +1,21 @@
+{
+  "372161270176153601": {
+    "userId": "372161270176153601",
+    "username": "jizarstoffel",
+    "name": "Jizar Stoffel",
+    "identifier": "4222",
+    "functionId": "member",
+    "functionName": "Member",
+    "invitedBy": "GM Stoffel",
+    "invitedById": "372161270176153601",
+    "approved": true,
+    "approvedBy": null,
+    "approvedAt": null,
+    "deniedReason": null,
+    "registeredAt": "2025-09-02T08:49:29.191Z",
+    "metadata": {
+      "discordAvatar": "https://cdn.discordapp.com/avatars/372161270176153601/b2fd95b738bc61add855fa3108045adf.webp",
+      "discordDiscriminator": "0"
+    }
+  }
+}

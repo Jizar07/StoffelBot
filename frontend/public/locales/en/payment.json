@@ -1,0 +1,21 @@
+{
+  "chooseYourPlan": "Choose Your Plan",
+  "subscribeDescription": "Subscribe to Stoffel Bot and unlock premium features",
+  "monthlyPlan": "Monthly Plan",
+  "yearlyPlan": "Yearly Plan",
+  "monthlyDescription": "Full access to all Discord bot features",
+  "yearlyDescription": "Full access to all Discord bot features (Save $33.89/year)",
+  "onlyPerMonth": "Only $4.17/month",
+  "features": {
+    "fullBotAccess": "Full bot access",
+    "allCommands": "All commands",
+    "uptime": "24/7 uptime",
+    "prioritySupport": "Priority support",
+    "savePerYear": "Save $33.89/year"
+  },
+  "completeSubscription": "Complete Your Subscription",
+  "selectedPlan": "Selected Plan",
+  "price": "Price",
+  "onlyPerMonthBilled": "Only $4.17/month when billed annually",
+  "paymentFailed": "Payment failed. Please try again."
+}

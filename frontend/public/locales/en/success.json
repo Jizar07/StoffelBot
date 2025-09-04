@@ -1,0 +1,11 @@
+{
+  "title": "Subscription Successful!",
+  "description": "Thank you for subscribing to Stoffel Bot! Your payment has been processed successfully.",
+  "whatsNext": "What's Next?",
+  "steps": {
+    "subscriptionActive": "Your subscription is now active",
+    "premiumUnlocked": "All premium features are unlocked",
+    "inviteBot": "Invite the bot to your Discord server",
+    "configureSettings": "Configure your bot settings"
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "formId": "registration_form",
+  "functions": [
+    {
+      "id": "member",
+      "displayName": "Member",
+      "discordRoleId": "840607153370562560",
+      "discordRoleName": "Admin",
+      "description": "Regular server member",
+      "order": 1,
+      "active": true,
+      "categoryId": "1068167599885651968",
+      "categoryName": "test",
+      "channelEmojiPrefix": null,
+      "channelPermissions": {
+        "channelTopic": "",
+        "allowedRoles": []
+      }
+    }
+  ],
+  "settings": {
+    "oneTimeOnly": true,
+    "requiresVerification": false,
+    "welcomeMessage": "Welcome to our server!",
+    "channelId": "1062894416890707968",
+    "embedColor": "#0099FF",
+    "serverIP": null,
+    "serverPort": null
+  },
+  "command": {
+    "name": "registro",
+    "description": "Bem vindo !!!!",
+    "permissions": "Administrator"
+  },
+  "formDisplay": {
+    "title": {
+      "en": "?? Server Registration",
+      "pt": "?? Registro do Servidor"
+    },
+    "description": "Welcome to our server! Please complete the registration process to gain access.",
+    "footerText": "Registration System",
+    "embedColor": "#0099FF",
+    "button": {
+      "text": "Registrar",
+      "emoji": "📝",
+      "style": "Primary"
+    }
+  },
+  "steps": {
+    "step1": {
+      "modalTitle": "Registration - Step 1/3",
+      "nameLabel": "Full Name",
+      "namePlaceholder": "Enter your full name",
+      "identifierLabel": "Unique ID",
+      "identifierPlaceholder": "Enter your unique identifier"
+    },
+    "step2": {
+      "embedTitle": "Step 2/3 - Select Your Role",
+      "embedDescription": "Please select your role/function:",
+      "dropdownPlaceholder": "Select your role"
+    },
+    "step3": {
+      "embedTitle": "Step 3/3 - Who invited you?",
+      "embedDescription": "Select who invited you to the server:\n\n✨ **Type to search** - Start typing to find members quickly!",
+      "dropdownPlaceholder": "Select who invited you"
+    }
+  },
+  "postRegistration": {
+    "nicknameFormat": "{name}",
+    "sendDM": true,
+    "dmTitle": "Welcome!",
+    "dmMessage": "Hello {name},\n\nYour registration as **{functionName}** has been approved!\n\nYou now have access to your role-specific channels.",
+    "assignRoles": true,
+    "welcomeChannelMessage": true,
+    "createChannel": true,
+    "channelNameFormat": "{name}-channel",
+    "channelPrefix": "team-",
+    "channelPostfix": "-private",
+    "channelWelcomeMessage": "Welcome to your personal channel! Here you can collaborate with your team.",
+    "channelCategoryId": "382905753247154180",
+    "channelCategoryName": "Stoffel Technology"
+  },
+  "messages": {
+    "alreadyRegistered": "❌ You are already registered!",
+    "sessionExpired": "❌ Registration session expired. Please start again.",
+    "registrationSuccess": "✅ Registration completed successfully!",
+    "errorGeneric": "❌ An error occurred. Please try again.",
+    "permissionDenied": "❌ You do not have permission to use this."
+  }
+}

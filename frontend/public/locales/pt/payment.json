@@ -1,0 +1,21 @@
+{
+  "chooseYourPlan": "Escolha Seu Plano",
+  "subscribeDescription": "Assine o Stoffel Bot e desbloqueie recursos premium",
+  "monthlyPlan": "Plano Mensal",
+  "yearlyPlan": "Plano Anual",
+  "monthlyDescription": "Acesso completo a todos os recursos do bot Discord",
+  "yearlyDescription": "Acesso completo a todos os recursos do bot Discord (Economize $33.89/ano)",
+  "onlyPerMonth": "Apenas $4.17/mês",
+  "features": {
+    "fullBotAccess": "Acesso completo ao bot",
+    "allCommands": "Todos os comandos",
+    "uptime": "Disponibilidade 24/7",
+    "prioritySupport": "Suporte prioritário",
+    "savePerYear": "Economize $33.89/ano"
+  },
+  "completeSubscription": "Complete Sua Assinatura",
+  "selectedPlan": "Plano Selecionado",
+  "price": "Preço",
+  "onlyPerMonthBilled": "Apenas $4.17/mês quando cobrado anualmente",
+  "paymentFailed": "Pagamento falhou. Tente novamente."
+}

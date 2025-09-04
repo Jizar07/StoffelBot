@@ -1,0 +1,11 @@
+{
+  "372161270176153601": {
+    "status": "active",
+    "nextBillingDate": "2026-09-01T19:41:36.051Z",
+    "subscriptionId": "sandbox_372161270176153601_1756755696052",
+    "planId": "sandbox_plan",
+    "amount": 0,
+    "currency": "USD",
+    "createdAt": "2025-09-01T19:41:36.052Z"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "stoffel-bot-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3141",
+    "build": "next build",
+    "start": "next start -p 3141",
+    "lint": "next lint",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:stop": "pm2 stop stoffel-bot-frontend",
+    "pm2:restart": "pm2 restart stoffel-bot-frontend",
+    "pm2:logs": "pm2 logs stoffel-bot-frontend",
+    "pm2:dev": "pm2 start ecosystem.config.js --env development --watch"
+  },
+  "dependencies": {
+    "@paypal/react-paypal-js": "^8.8.3",
+    "axios": "^1.11.0",
+    "i18next": "^25.4.2",
+    "next": "14.2.5",
+    "next-auth": "^4.24.11",
+    "next-i18next": "^15.4.2",
+    "pm2": "^6.0.9",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-i18next": "^15.7.3"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.11",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "eslint": "8.57.0",
+    "eslint-config-next": "14.2.5",
+    "typescript": "5.5.4"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "title": "Assinatura Realizada com Sucesso!",
+  "description": "Obrigado por assinar o Stoffel Bot! Seu pagamento foi processado com sucesso.",
+  "whatsNext": "O Que Vem Agora?",
+  "steps": {
+    "subscriptionActive": "Sua assinatura está ativa",
+    "premiumUnlocked": "Todos os recursos premium foram desbloqueados",
+    "inviteBot": "Convide o bot para seu servidor do Discord",
+    "configureSettings": "Configure as definições do seu bot"
+  }
+}
