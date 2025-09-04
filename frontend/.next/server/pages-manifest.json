@@ -2,10 +2,12 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/registration": "pages/registration.js",
-  "/": "pages/index.js",
-  "/settings": "pages/settings.js",
+  "/admin/music": "pages/admin/music.js",
   "/api/auth/[...nextauth]": "pages/api/auth/[...nextauth].js",
-  "/servers": "pages/servers.js",
-  "/automod": "pages/automod.js"
+  "/admin/analytics": "pages/admin/analytics.js",
+  "/admin/monitoring": "pages/admin/monitoring.js",
+  "/": "pages/index.js",
+  "/registration": "pages/registration.js",
+  "/admin/dashboard": "pages/admin/dashboard.js",
+  "/admin/moderation": "pages/admin/moderation.js"
 }

@@ -3,5 +3,14 @@
   "servers": "Servers",
   "automod": "AutoMod",
   "registration": "Registration",
-  "settings": "Settings"
+  "settings": "Settings",
+  "music": "Music Control",
+  "moderation": "Moderation",
+  "analytics": "Analytics",
+  "roles": "Roles & Users",
+  "channels": "Channels",
+  "commands": "Custom Commands",
+  "logs": "Activity Logs",
+  "monitoring": "Bot Health",
+  "adminDashboard": "Admin Dashboard"
 }

@@ -175,7 +175,8 @@
       "Bash(del \"C:\\Users\\jizar\\OneDrive\\Documents\\Stoffel Bot\\backend\\commands\\list\\ping.js\")",
       "Bash(del \"C:\\Users\\jizar\\OneDrive\\Documents\\Stoffel Bot\\backend\\commands\\list\\stats.js\")",
       "Read(/C:\\Users\\jizar\\OneDrive\\Documents\\Stoffel Bot/**)",
-      "Read(/C:\\Users\\jizar\\OneDrive\\Documents\\Stoffel Bot/**)"
+      "Read(/C:\\Users\\jizar\\OneDrive\\Documents\\Stoffel Bot/**)",
+      "Bash(git clean:*)"
     ],
     "deny": [],
     "ask": []

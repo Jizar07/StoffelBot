@@ -1194,6 +1194,436 @@ app.post('/api/sandbox/activate-subscription/:userId', async (req, res) => {
   }
 });
 
+// Admin Panel API Endpoints
+
+// Music System Configuration API
+app.get('/api/admin/music/:guildId', async (req, res) => {
+  try {
+    const { guildId } = req.params;
+    const fs = require('fs').promises;
+    const path = require('path');
+    const configPath = path.join(__dirname, 'data/music-configs.json');
+    
+    let config = {
+      enabled: true,
+      defaultVolume: 50,
+      maxQueueSize: 100,
+      platforms: {
+        youtube: true,
+        spotify: true,
+        soundcloud: true
+      },
+      autoLeave: {
+        enabled: true,
+        timeout: 300
+      },
+      djMode: false,
+      voteSkip: true,
+      filters: {
+        bassBoost: false,
+        nightcore: false,
+        eightD: false
+      },
+      restrictions: {
+        djRole: null,
+        allowedChannels: []
+      }
+    };
+    
+    try {
+      const data = await fs.readFile(configPath, 'utf8');
+      const configs = JSON.parse(data);
+      if (configs[guildId]) {
+        config = { ...config, ...configs[guildId] };
+      }
+    } catch {
+      // Use defaults
+    }
+    
+    res.json({ config });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/music/:guildId', async (req, res) => {
+  try {
+    const { guildId } = req.params;
+    const configData = req.body;
+    
+    const fs = require('fs').promises;
+    const path = require('path');
+    const configPath = path.join(__dirname, 'data/music-configs.json');
+    
+    await ensureDataDir();
+    
+    let configs = {};
+    try {
+      const data = await fs.readFile(configPath, 'utf8');
+      configs = JSON.parse(data);
+    } catch {
+      // File doesn't exist
+    }
+    
+    configs[guildId] = {
+      ...configData,
+      guildId,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    await fs.writeFile(configPath, JSON.stringify(configs, null, 2));
+    
+    res.json({ success: true, config: configs[guildId] });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Moderation Configuration API (enhanced)
+app.get('/api/admin/moderation/:guildId', async (req, res) => {
+  try {
+    const { guildId } = req.params;
+    const fs = require('fs').promises;
+    const path = require('path');
+    const configPath = path.join(__dirname, 'data/moderation-configs.json');
+    
+    let config = {
+      enabled: false,
+      automod: {
+        spam: true,
+        profanity: true,
+        links: false,
+        phishing: true,
+        toxicity: false
+      },
+      warnings: {
+        enabled: true,
+        maxWarnings: 3,
+        actions: {
+          1: 'warn',
+          2: 'timeout',
+          3: 'kick'
+        }
+      },
+      logging: {
+        enabled: true,
+        channel: null
+      },
+      whitelist: {
+        roles: [],
+        channels: [],
+        users: []
+      }
+    };
+    
+    try {
+      const data = await fs.readFile(configPath, 'utf8');
+      const configs = JSON.parse(data);
+      if (configs[guildId]) {
+        config = { ...config, ...configs[guildId] };
+      }
+    } catch {
+      // Use defaults
+    }
+    
+    res.json({ config });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/moderation/:guildId', async (req, res) => {
+  try {
+    const { guildId } = req.params;
+    const configData = req.body;
+    
+    const fs = require('fs').promises;
+    const path = require('path');
+    const configPath = path.join(__dirname, 'data/moderation-configs.json');
+    
+    await ensureDataDir();
+    
+    let configs = {};
+    try {
+      const data = await fs.readFile(configPath, 'utf8');
+      configs = JSON.parse(data);
+    } catch {
+      // File doesn't exist
+    }
+    
+    configs[guildId] = {
+      ...configData,
+      guildId,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    await fs.writeFile(configPath, JSON.stringify(configs, null, 2));
+    
+    res.json({ success: true, config: configs[guildId] });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Analytics API
+app.get('/api/admin/analytics/:guildId', async (req, res) => {
+  try {
+    const { guildId } = req.params;
+    const { timeRange = '7d' } = req.query;
+    
+    if (!client.isReady()) {
+      return res.status(503).json({ error: 'Bot is not ready' });
+    }
+    
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+    
+    // Generate mock analytics data for now
+    const analytics = {
+      overview: {
+        totalMembers: guild.memberCount,
+        activeMembers: Math.floor(guild.memberCount * 0.3),
+        messagesLast24h: Math.floor(Math.random() * 1000) + 500,
+        commandsLast24h: Math.floor(Math.random() * 100) + 50
+      },
+      commands: {
+        mostUsed: [
+          { name: '/play', usage: Math.floor(Math.random() * 50) + 20 },
+          { name: '/skip', usage: Math.floor(Math.random() * 30) + 10 },
+          { name: '/queue', usage: Math.floor(Math.random() * 25) + 5 },
+          { name: '/warn', usage: Math.floor(Math.random() * 10) + 2 },
+          { name: '/clear', usage: Math.floor(Math.random() * 15) + 3 }
+        ],
+        totalExecuted: Math.floor(Math.random() * 200) + 100
+      },
+      users: {
+        topActive: guild.members.cache
+          .filter(m => !m.user.bot)
+          .random(5)
+          .map(m => ({
+            id: m.id,
+            username: m.user.username,
+            avatar: m.user.displayAvatarURL({ size: 64 }),
+            messages: Math.floor(Math.random() * 100) + 20,
+            voiceTime: Math.floor(Math.random() * 600) + 60
+          }))
+      },
+      channels: {
+        mostActive: guild.channels.cache
+          .filter(c => c.type === 0)
+          .random(5)
+          .map(c => ({
+            id: c.id,
+            name: c.name,
+            messages: Math.floor(Math.random() * 200) + 50
+          }))
+      },
+      moderation: {
+        actionsLast24h: Math.floor(Math.random() * 10),
+        warnings: Math.floor(Math.random() * 15),
+        kicks: Math.floor(Math.random() * 3),
+        bans: Math.floor(Math.random() * 2),
+        automodActions: Math.floor(Math.random() * 20)
+      },
+      performance: {
+        uptime: Math.floor(process.uptime()),
+        memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        responseTime: Math.floor(Math.random() * 50) + 10,
+        ping: Math.round(client.ws.ping)
+      }
+    };
+    
+    res.json({ analytics, timeRange });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Server Management API
+app.get('/api/admin/servers/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    if (!client.isReady()) {
+      return res.status(503).json({ error: 'Bot is not ready' });
+    }
+    
+    // Check subscription
+    const { hasActiveSubscription } = require('./models/user-server');
+    const hasSubscription = await hasActiveSubscription(userId);
+    
+    if (!hasSubscription) {
+      return res.json({ 
+        servers: [],
+        hasSubscription: false,
+        message: 'Active subscription required'
+      });
+    }
+    
+    // Get user's servers
+    const { getSubscribedServers } = require('./models/user-server');
+    const subscribedServers = await getSubscribedServers(userId, client);
+    
+    const servers = subscribedServers.map(server => {
+      const guild = client.guilds.cache.get(server.guildId);
+      if (!guild) return null;
+      
+      return {
+        id: guild.id,
+        name: guild.name,
+        icon: guild.iconURL({ size: 128 }),
+        memberCount: guild.memberCount,
+        online: true,
+        botPermissions: guild.members.me?.permissions.toArray() || [],
+        isOwner: guild.ownerId === userId,
+        joinedAt: guild.joinedAt
+      };
+    }).filter(Boolean);
+    
+    res.json({ servers, hasSubscription: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Role and User Management API
+app.get('/api/admin/roles/:guildId', async (req, res) => {
+  try {
+    const { guildId } = req.params;
+    
+    if (!client.isReady()) {
+      return res.status(503).json({ error: 'Bot is not ready' });
+    }
+    
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+    
+    const roles = guild.roles.cache
+      .filter(role => role.name !== '@everyone')
+      .map(role => ({
+        id: role.id,
+        name: role.name,
+        color: role.hexColor,
+        position: role.position,
+        permissions: role.permissions.toArray(),
+        mentionable: role.mentionable,
+        hoisted: role.hoist,
+        managed: role.managed,
+        memberCount: role.members.size,
+        createdAt: role.createdAt
+      }))
+      .sort((a, b) => b.position - a.position);
+    
+    res.json({ roles });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/admin/channels/:guildId', async (req, res) => {
+  try {
+    const { guildId } = req.params;
+    
+    if (!client.isReady()) {
+      return res.status(503).json({ error: 'Bot is not ready' });
+    }
+    
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+    
+    const channels = guild.channels.cache.map(channel => ({
+      id: channel.id,
+      name: channel.name,
+      type: channel.type,
+      position: channel.position,
+      parentId: channel.parentId,
+      topic: channel.topic,
+      nsfw: channel.nsfw,
+      bitrate: channel.bitrate,
+      userLimit: channel.userLimit,
+      createdAt: channel.createdAt,
+      permissionOverwrites: channel.permissionOverwrites.cache.size
+    })).sort((a, b) => a.position - b.position);
+    
+    res.json({ channels });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Log Management API
+app.get('/api/admin/logs/:guildId', async (req, res) => {
+  try {
+    const { guildId } = req.params;
+    const { type = 'all', limit = 50 } = req.query;
+    
+    // Mock log data for now - in production this would come from database
+    const logs = Array.from({ length: parseInt(limit) }, (_, i) => ({
+      id: `log_${Date.now() + i}`,
+      timestamp: new Date(Date.now() - i * 60000).toISOString(),
+      type: ['moderation', 'music', 'command', 'error'][Math.floor(Math.random() * 4)],
+      action: ['User warned', 'Song played', 'Command executed', 'Error occurred'][Math.floor(Math.random() * 4)],
+      user: {
+        id: '123456789',
+        username: 'TestUser',
+        avatar: null
+      },
+      details: 'Sample log entry for testing purposes'
+    }));
+    
+    const filteredLogs = type === 'all' ? logs : logs.filter(log => log.type === type);
+    
+    res.json({ logs: filteredLogs, total: filteredLogs.length });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// System Health Monitoring API
+app.get('/api/admin/health', async (req, res) => {
+  try {
+    const uptime = process.uptime();
+    const memory = process.memoryUsage();
+    
+    const health = {
+      bot: {
+        status: client.isReady() ? 'online' : 'offline',
+        uptime: {
+          seconds: Math.floor(uptime),
+          formatted: `${Math.floor(uptime / 86400)}d ${Math.floor((uptime % 86400) / 3600)}h ${Math.floor((uptime % 3600) / 60)}m`
+        },
+        ping: client.ws.ping,
+        guilds: client.guilds.cache.size,
+        users: client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)
+      },
+      system: {
+        memory: {
+          used: Math.round(memory.heapUsed / 1024 / 1024),
+          total: Math.round(memory.heapTotal / 1024 / 1024),
+          external: Math.round(memory.external / 1024 / 1024)
+        },
+        cpu: Math.floor(Math.random() * 50) + 10, // Mock CPU usage
+        platform: process.platform,
+        nodeVersion: process.version
+      },
+      database: {
+        status: 'connected', // Mock status
+        responseTime: Math.floor(Math.random() * 10) + 1
+      }
+    };
+    
+    res.json({ health });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
