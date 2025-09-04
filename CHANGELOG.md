@@ -5,6 +5,26 @@ All notable changes to Stoffel Bot will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.03] - 2025-09-04
+
+### Added
+- Bot customization system with `/customize` Discord command
+- Server-specific bot nickname changes with real-time updates
+- Complete API endpoints for bot customization management (GET/POST/DELETE)
+- Frontend bot customization interface in automod settings page
+- Portuguese translations for all bot customization UI elements
+- Input validation and error handling for nickname changes
+- User tracking for customization history with timestamps
+
+### Changed  
+- Streamlined frontend command list by removing /ping, /update, /stats commands
+- Updated command descriptions to focus on user-facing functionality only
+- Enhanced multilingual support with comprehensive Portuguese translations
+
+### Removed
+- Avatar customization functionality (Discord API limitation)
+- Unnecessary command references from frontend display
+
 ## [v0.02] - 2025-09-01
 
 ### Added
