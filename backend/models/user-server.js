@@ -158,16 +158,17 @@ async function getSubscribedServers(userId, client) {
 
 // Auto-register commands for subscribed servers
 async function registerCommandsForSubscribedServers(client, commandManager) {
-  // In sandbox mode, register commands for all servers to make testing easier
+  // In sandbox mode, register commands globally to make testing easier
   if (process.env.SANDBOX_MODE === 'true') {
-    console.log('🧪 Sandbox mode: Registering commands for ALL servers');
-    for (const guild of client.guilds.cache.values()) {
-      try {
-        await commandManager.registerGuildCommands(client, guild.id);
-        console.log(`✅ [SANDBOX] Registered commands for: ${guild.name} (${guild.id})`);
-      } catch (error) {
-        console.error(`❌ Failed to register commands for ${guild.name}:`, error);
-      }
+    console.log('🧪 Sandbox mode: Registering GLOBAL commands for faster testing');
+    try {
+      await commandManager.registerGlobalCommands(client);
+      console.log('✅ [SANDBOX] Successfully registered GLOBAL commands');
+      console.log('   Commands will appear in ALL servers within ~5 minutes');
+    } catch (error) {
+      console.error('❌ Failed to register global commands:');
+      console.error('   Error message:', error.message);
+      console.error('   Full error:', error);
     }
     return;
   }

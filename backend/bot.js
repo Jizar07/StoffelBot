@@ -1,4 +1,5 @@
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+const { Player } = require('discord-player');
 const { CommandManager } = require('./commands');
 const { handleRegistrationButton, handleRegistrationModalSubmit } = require('./handlers/registration-handler');
 const { 
@@ -17,11 +18,185 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildVoiceStates,
   ]
 });
 
 // Initialize command manager
 client.commandManager = new CommandManager();
+
+// Initialize Discord Player
+const player = Player.singleton(client);
+
+// Load default extractors (YouTube, Spotify, etc.)
+player.extractors.loadDefault((ext) => ext !== 'YoutubeiExtractor');
+
+// Music button handler
+async function handleMusicButton(interaction) {
+    const { createControlButtons, createNowPlayingEmbed, createQueueEmbed } = require('./commands/list/music');
+    
+    if (!interaction.member.voice.channel) {
+        return interaction.reply({
+            embeds: [
+                new EmbedBuilder()
+                    .setColor('#FF0000')
+                    .setDescription('❌ You need to be in a voice channel to use music controls!')
+            ],
+            ephemeral: true
+        });
+    }
+
+    const queue = player.nodes.get(interaction.guildId);
+    
+    if (!queue && !['music_queue'].includes(interaction.customId)) {
+        return interaction.reply({
+            embeds: [
+                new EmbedBuilder()
+                    .setColor('#FF0000')
+                    .setDescription('❌ No music is currently playing!')
+            ],
+            ephemeral: true
+        });
+    }
+
+    try {
+        switch (interaction.customId) {
+            case 'music_pause':
+                if (!queue.isPlaying()) {
+                    return interaction.reply({ content: '❌ Music is not playing!', ephemeral: true });
+                }
+                queue.node.pause();
+                const pauseEmbed = new EmbedBuilder()
+                    .setColor('#FFFF00')
+                    .setTitle('⏸️ Music Paused')
+                    .setDescription(`**[${queue.currentTrack.title}](${queue.currentTrack.url})**\n*Paused by ${interaction.user}*`)
+                    .setThumbnail(queue.currentTrack.thumbnail);
+                const pauseButtons = createControlButtons(true, true, queue.tracks.toArray().length > 0);
+                return interaction.update({ embeds: [pauseEmbed], components: pauseButtons });
+
+            case 'music_resume':
+                if (queue.node.isPlaying()) {
+                    return interaction.reply({ content: '❌ Music is not paused!', ephemeral: true });
+                }
+                queue.node.resume();
+                const resumeEmbed = createNowPlayingEmbed(queue, queue.currentTrack);
+                const resumeButtons = createControlButtons(true, false, queue.tracks.toArray().length > 0);
+                return interaction.update({ embeds: [resumeEmbed], components: resumeButtons });
+
+            case 'music_skip':
+                if (!queue.isPlaying()) {
+                    return interaction.reply({ content: '❌ No music is playing!', ephemeral: true });
+                }
+                const skippedTrack = queue.currentTrack;
+                queue.node.skip();
+                return interaction.reply({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor('#00FF00')
+                            .setDescription(`⏭️ Skipped: **${skippedTrack.title}**`)
+                    ]
+                });
+
+            case 'music_stop':
+                if (!queue) {
+                    return interaction.reply({ content: '❌ No music is playing!', ephemeral: true });
+                }
+                queue.delete();
+                return interaction.update({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor('#FF0000')
+                            .setTitle('⏹️ Music Stopped')
+                            .setDescription('Queue cleared and disconnected from voice channel.')
+                    ],
+                    components: []
+                });
+
+            case 'music_volume_up':
+                const currentVolumeUp = queue.node.volume;
+                const newVolumeUp = Math.min(currentVolumeUp + 10, 100);
+                queue.node.setVolume(newVolumeUp);
+                return interaction.reply({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor('#00FF00')
+                            .setDescription(`🔊 Volume: ${currentVolumeUp}% → ${newVolumeUp}%`)
+                    ],
+                    ephemeral: true
+                });
+
+            case 'music_volume_down':
+                const currentVolumeDown = queue.node.volume;
+                const newVolumeDown = Math.max(currentVolumeDown - 10, 0);
+                queue.node.setVolume(newVolumeDown);
+                return interaction.reply({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor('#00FF00')
+                            .setDescription(`🔉 Volume: ${currentVolumeDown}% → ${newVolumeDown}%`)
+                    ],
+                    ephemeral: true
+                });
+
+            case 'music_shuffle':
+                if (!queue || queue.tracks.toArray().length === 0) {
+                    return interaction.reply({ content: '❌ No songs in queue to shuffle!', ephemeral: true });
+                }
+                queue.tracks.shuffle();
+                return interaction.reply({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor('#00FF00')
+                            .setDescription(`🔀 Queue shuffled! (${queue.tracks.toArray().length} songs)`)
+                    ],
+                    ephemeral: true
+                });
+
+            case 'music_loop':
+                const modes = ['Off', 'Track', 'Queue'];
+                const currentMode = queue.repeatMode;
+                const nextMode = (currentMode + 1) % 3;
+                queue.setRepeatMode(nextMode);
+                return interaction.reply({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor('#00FF00')
+                            .setDescription(`🔁 Loop mode: ${modes[currentMode]} → ${modes[nextMode]}`)
+                    ],
+                    ephemeral: true
+                });
+
+            case 'music_queue':
+                if (!queue || !queue.currentTrack) {
+                    return interaction.reply({
+                        embeds: [
+                            new EmbedBuilder()
+                                .setColor('#FF0000')
+                                .setDescription('❌ No music is currently playing!')
+                        ],
+                        ephemeral: true
+                    });
+                }
+                const queueEmbed = createQueueEmbed(queue);
+                const queueButtons = createControlButtons(queue.isPlaying(), queue.node.isPaused(), queue.tracks.toArray().length > 0);
+                return interaction.update({ embeds: [queueEmbed], components: queueButtons });
+
+            case 'music_nowplaying':
+                if (!queue || !queue.isPlaying()) {
+                    return interaction.reply({ content: '❌ No music is playing!', ephemeral: true });
+                }
+                const nowPlayingEmbed = createNowPlayingEmbed(queue, queue.currentTrack);
+                const nowPlayingButtons = createControlButtons(queue.isPlaying(), queue.node.isPaused(), queue.tracks.toArray().length > 0);
+                return interaction.update({ embeds: [nowPlayingEmbed], components: nowPlayingButtons });
+
+            default:
+                return interaction.reply({ content: '❌ Unknown button!', ephemeral: true });
+        }
+    } catch (error) {
+        console.error('Music button error:', error);
+        return interaction.reply({ content: '❌ An error occurred!', ephemeral: true });
+    }
+}
 
 client.once('ready', async () => {
   console.log(`Logged in as ${client.user.tag}!`);
@@ -48,10 +223,10 @@ client.once('ready', async () => {
   // Initialize registration service with Discord client
   RegistrationService.setClient(client);
   
-  // Register slash commands only for subscribed servers
+  // Register slash commands (global in sandbox mode, per-server otherwise)
   await registerCommandsForSubscribedServers(client, client.commandManager);
   
-  console.log('✅ Bot ready and commands registered for subscribed servers!');
+  console.log('✅ Bot ready and commands registered!');
 });
 
 // Handle interactions (slash commands, buttons, modals)
@@ -65,6 +240,8 @@ client.on('interactionCreate', async interaction => {
       await handleRegistrationStart(interaction);
     } else if (interaction.customId.startsWith('registration_')) {
       await handleRegistrationButton(interaction);
+    } else if (interaction.customId.startsWith('music_')) {
+      await handleMusicButton(interaction);
     }
   } 
   else if (interaction.isModalSubmit()) {

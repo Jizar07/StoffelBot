@@ -26,6 +26,16 @@ interface Settings {
   autoRestart: boolean
   commandLogging: boolean
   maintenanceMode: boolean
+  // Music settings
+  defaultVolume: number
+  autoLeaveEmpty: boolean
+  autoLeaveEmptyTimeout: number
+  autoLeaveEnd: boolean
+  autoLeaveEndTimeout: number
+  maxQueueSize: number
+  allowPlaylists: boolean
+  allowSpotify: boolean
+  allowYouTube: boolean
 }
 
 export default function Settings() {
@@ -45,7 +55,17 @@ export default function Settings() {
     botPrefix: '/',
     autoRestart: true,
     commandLogging: true,
-    maintenanceMode: false
+    maintenanceMode: false,
+    // Music settings
+    defaultVolume: 50,
+    autoLeaveEmpty: true,
+    autoLeaveEmptyTimeout: 30,
+    autoLeaveEnd: true,
+    autoLeaveEndTimeout: 30,
+    maxQueueSize: 100,
+    allowPlaylists: true,
+    allowSpotify: true,
+    allowYouTube: true
   })
   const [loading, setLoading] = useState(true)
 
@@ -199,6 +219,162 @@ export default function Settings() {
                 style={{ transform: 'scale(1.2)' }}
               />
             </div>
+          </div>
+        </div>
+
+        {/* Music Settings */}
+        <div className="card">
+          <h2 style={{ marginBottom: '1.5rem', fontSize: '1.5rem' }}>🎵 Music Settings</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {/* Default Volume */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Default Volume:</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="range"
+                  min="1"
+                  max="100"
+                  value={settings.defaultVolume}
+                  onChange={(e) => handleSettingsChange('defaultVolume', parseInt(e.target.value))}
+                  style={{ width: '100px' }}
+                />
+                <span style={{ minWidth: '35px', textAlign: 'right' }}>{settings.defaultVolume}%</span>
+              </div>
+            </div>
+
+            {/* Max Queue Size */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Max Queue Size:</span>
+              <input
+                type="number"
+                min="10"
+                max="1000"
+                value={settings.maxQueueSize}
+                onChange={(e) => handleSettingsChange('maxQueueSize', parseInt(e.target.value))}
+                style={{ 
+                  width: '80px', 
+                  padding: '0.25rem', 
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '4px',
+                  color: 'white'
+                }}
+              />
+            </div>
+
+            {/* Auto Leave Settings */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Auto Leave When Empty:</span>
+              <input
+                type="checkbox"
+                checked={settings.autoLeaveEmpty}
+                onChange={(e) => handleSettingsChange('autoLeaveEmpty', e.target.checked)}
+                style={{ transform: 'scale(1.2)' }}
+              />
+            </div>
+
+            {settings.autoLeaveEmpty && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingLeft: '1rem' }}>
+                <span>Empty Timeout (seconds):</span>
+                <input
+                  type="number"
+                  min="5"
+                  max="300"
+                  value={settings.autoLeaveEmptyTimeout}
+                  onChange={(e) => handleSettingsChange('autoLeaveEmptyTimeout', parseInt(e.target.value))}
+                  style={{ 
+                    width: '80px', 
+                    padding: '0.25rem', 
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '4px',
+                    color: 'white'
+                  }}
+                />
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Auto Leave When Done:</span>
+              <input
+                type="checkbox"
+                checked={settings.autoLeaveEnd}
+                onChange={(e) => handleSettingsChange('autoLeaveEnd', e.target.checked)}
+                style={{ transform: 'scale(1.2)' }}
+              />
+            </div>
+
+            {settings.autoLeaveEnd && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingLeft: '1rem' }}>
+                <span>End Timeout (seconds):</span>
+                <input
+                  type="number"
+                  min="5"
+                  max="300"
+                  value={settings.autoLeaveEndTimeout}
+                  onChange={(e) => handleSettingsChange('autoLeaveEndTimeout', parseInt(e.target.value))}
+                  style={{ 
+                    width: '80px', 
+                    padding: '0.25rem', 
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '4px',
+                    color: 'white'
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Platform Settings */}
+            <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '1rem', marginTop: '0.5rem' }}>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>Allowed Platforms</h3>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>🎥 Allow YouTube:</span>
+                <input
+                  type="checkbox"
+                  checked={settings.allowYouTube}
+                  onChange={(e) => handleSettingsChange('allowYouTube', e.target.checked)}
+                  style={{ transform: 'scale(1.2)' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>🎧 Allow Spotify:</span>
+                <input
+                  type="checkbox"
+                  checked={settings.allowSpotify}
+                  onChange={(e) => handleSettingsChange('allowSpotify', e.target.checked)}
+                  style={{ transform: 'scale(1.2)' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>📝 Allow Playlists:</span>
+                <input
+                  type="checkbox"
+                  checked={settings.allowPlaylists}
+                  onChange={(e) => handleSettingsChange('allowPlaylists', e.target.checked)}
+                  style={{ transform: 'scale(1.2)' }}
+                />
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <button 
+              className="button" 
+              style={{ 
+                background: '#7C3AED', 
+                marginTop: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem'
+              }}
+              onClick={() => alert('Music settings saved! (Feature coming soon)')}
+            >
+              💾 Save Music Settings
+            </button>
           </div>
         </div>
 
