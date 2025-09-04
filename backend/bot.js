@@ -300,10 +300,33 @@ client.on('guildDelete', async (guild) => {
   // Note: We don't remove the user-server relationship in case they re-invite
 });
 
+// Import anti-spam and logging functionality
+const { checkMessage: checkAntiSpam } = require('./commands/list/antispam');
+const { 
+  handleMessageCreate: logMessageCreate,
+  handleMessageDelete: logMessageDelete, 
+  handleMessageUpdate: logMessageUpdate,
+  handleMessageBulkDelete: logMessageBulkDelete 
+} = require('./commands/list/logging');
+
 // Auto-moderation for spam and fake links
 client.on('messageCreate', async message => {
+  // Message logging (for all messages, including bots)
+  try {
+    await logMessageCreate(message);
+  } catch (error) {
+    console.error('Message logging error:', error);
+  }
+  
   if (message.author.bot) return;
   if (!message.guild) return;
+  
+  // Anti-spam check (runs after logging)
+  try {
+    await checkAntiSpam(message);
+  } catch (error) {
+    console.error('Anti-spam check error:', error);
+  }
   
   // Check if automod is enabled for this guild
   try {
@@ -787,6 +810,31 @@ async function getServerLanguage(guildId) {
     return 'en'; // Default to English if no config
   }
 }
+
+// Message logging event handlers
+client.on('messageDelete', async (message) => {
+  try {
+    await logMessageDelete(message);
+  } catch (error) {
+    console.error('Message delete logging error:', error);
+  }
+});
+
+client.on('messageUpdate', async (oldMessage, newMessage) => {
+  try {
+    await logMessageUpdate(oldMessage, newMessage);
+  } catch (error) {
+    console.error('Message update logging error:', error);
+  }
+});
+
+client.on('messageDeleteBulk', async (messages, channel) => {
+  try {
+    await logMessageBulkDelete(messages, channel);
+  } catch (error) {
+    console.error('Bulk message delete logging error:', error);
+  }
+});
 
 // Export client for use in API
 module.exports = { client };

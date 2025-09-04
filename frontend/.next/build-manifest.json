@@ -32,6 +32,11 @@
       "static/chunks/main.js",
       "static/chunks/pages/automod.js"
     ],
+    "/registration": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/registration.js"
+    ],
     "/servers": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",

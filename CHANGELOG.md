@@ -5,6 +5,61 @@ All notable changes to Stoffel Bot will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.05] - 2025-09-04
+
+### Added - Core Moderation Systems
+- 🛡️ **Anti-Spam System** (`/antispam`) with real-time message monitoring
+  - Rate limiting with configurable messages per minute (1-100)
+  - Duplicate message detection with time windows (10-300s)
+  - Auto-muting with configurable duration (60s-24h)
+  - Smart filtering: ignore channels, roles, and admin bypass
+  - Auto-role creation with proper channel permissions
+  - Comprehensive logging with detailed spam information
+  - Statistics tracking and enforcement monitoring
+
+- ⚠️ **Warning & Punishment System** (`/warn`) with progressive moderation
+  - Progressive escalation: warn → mute → kick → ban
+  - Persistent JSON-based warning history storage
+  - Auto-decay system with configurable expiration (1-365 days)
+  - Comprehensive subcommands: add, remove, clear, list warnings
+  - Auto-punishment with configurable thresholds for each action
+  - Appeal system with configurable appeal channels
+  - Rich logging with separate channels for warnings and punishments
+  - Statistics dashboard tracking warning patterns and top warned users
+
+- 📋 **Message Logging System** (`/logging`) with complete audit trail
+  - Complete message tracking: create, delete, edit, bulk delete events
+  - Rich embed logs with beautiful formatting and context preservation
+  - Attachment preservation with direct links to deleted files
+  - Detailed file storage in JSON format for data export capabilities
+  - Smart message caching (1000 messages per guild) for delete logging
+  - Advanced ignore filters: skip bots, specific channels, custom rules
+  - Data retention management with auto-cleanup (1-365 days)
+  - Export functionality to download logs by date as JSON files
+
+- 🎛️ **Comprehensive Frontend Settings Interface**
+  - Detailed configuration panels for every system component
+  - Professional styling with conditional visibility based on parent settings
+  - Granular controls for timeouts, limits, channels, roles, and thresholds
+  - Real-time validation with proper input ranges and error handling
+  - Intuitive organization by feature category with expandable sections
+  - Complete settings persistence and synchronization with backend systems
+
+### Changed
+- **Command List Streamlined** - Removed development/testing commands
+  - Removed `/ping`, `/stats`, `/update` commands (11 total commands now)
+  - Focused on essential user-facing functionality only
+  - Cleaner command list for production deployment
+
+### Technical Implementation
+- **Real-time Message Processing** - All message events monitored and processed
+- **Persistent Data Storage** - JSON-based configuration and history storage
+- **Error Handling & Logging** - Comprehensive error catching with detailed logging
+- **Event Handler Integration** - Seamless integration with Discord.js event system
+- **Memory Management** - Smart caching with automatic cleanup and optimization
+- **Permission Management** - Proper role creation and channel permission handling
+- **Audit Log Integration** - Attempts to identify moderators for bulk actions
+
 ## [v0.04] - 2025-09-04
 
 ### Added
