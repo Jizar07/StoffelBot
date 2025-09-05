@@ -239,6 +239,586 @@ app.get('/api/guild/:guildId/info', async (req, res) => {
   }
 });
 
+// Get guild roles for frontend roles management
+app.get('/api/guild/:guildId/roles', async (req, res) => {
+  try {
+    const { guildId } = req.params;
+    
+    if (!client.isReady()) {
+      return res.status(503).json({ error: 'Bot is not ready' });
+    }
+    
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+    
+    const roles = guild.roles.cache
+      .filter(role => role.name !== '@everyone')
+      .map(role => ({
+        id: role.id,
+        name: role.name,
+        color: role.hexColor,
+        position: role.position,
+        permissions: role.permissions.toArray(),
+        mentionable: role.mentionable,
+        hoisted: role.hoist,
+        managed: role.managed,
+        memberCount: role.members.size,
+        createdAt: role.createdAt.toISOString()
+      }))
+      .sort((a, b) => b.position - a.position);
+    
+    res.json({ roles });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get guild members for frontend user management
+app.get('/api/guild/:guildId/members', async (req, res) => {
+  try {
+    const { guildId } = req.params;
+    const { limit = 100, offset = 0 } = req.query;
+    
+    if (!client.isReady()) {
+      return res.status(503).json({ error: 'Bot is not ready' });
+    }
+    
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+    
+    // Fetch members if not cached (for larger servers)
+    await guild.members.fetch({ limit: parseInt(limit), offset: parseInt(offset) });
+    
+    const members = guild.members.cache
+      .filter(member => !member.user.bot || member.user.id === client.user.id) // Include bot itself but filter other bots
+      .map(member => ({
+        id: member.user.id,
+        username: member.user.username,
+        discriminator: member.user.discriminator,
+        avatar: member.user.displayAvatarURL({ size: 64 }),
+        nickname: member.nickname,
+        roles: member.roles.cache
+          .filter(role => role.name !== '@everyone')
+          .map(role => role.id),
+        joinedAt: member.joinedAt?.toISOString(),
+        status: member.presence?.status || 'offline',
+        isBot: member.user.bot,
+        permissions: member.permissions.toArray(),
+        highestRole: {
+          id: member.roles.highest.id,
+          name: member.roles.highest.name,
+          color: member.roles.highest.hexColor
+        },
+        voiceState: member.voice.channelId ? {
+          channelId: member.voice.channelId,
+          channelName: member.voice.channel?.name,
+          muted: member.voice.mute,
+          deafened: member.voice.deaf
+        } : null
+      }))
+      .sort((a, b) => {
+        // Sort by: online status first, then by join date
+        if (a.status === 'offline' && b.status !== 'offline') return 1;
+        if (a.status !== 'offline' && b.status === 'offline') return -1;
+        return new Date(a.joinedAt) - new Date(b.joinedAt);
+      });
+    
+    res.json({ 
+      members,
+      totalMembers: guild.memberCount,
+      fetchedMembers: members.length
+    });
+  } catch (error) {
+    console.error('Error fetching guild members:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create a new role
+app.post('/api/guild/:guildId/roles', async (req, res) => {
+  try {
+    const { guildId } = req.params;
+    const { name, color, permissions, hoisted, mentionable } = req.body;
+    
+    if (!client.isReady()) {
+      return res.status(503).json({ error: 'Bot is not ready' });
+    }
+    
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+    
+    // Check bot permissions
+    if (!guild.members.me.permissions.has('ManageRoles')) {
+      return res.status(403).json({ error: 'Bot lacks Manage Roles permission' });
+    }
+    
+    // Create the role
+    const role = await guild.roles.create({
+      name: name || 'New Role',
+      color: color || '#99AAB5',
+      permissions: permissions || [],
+      hoist: hoisted || false,
+      mentionable: mentionable || false,
+      reason: 'Created via Stoffel Bot admin panel'
+    });
+    
+    res.json({
+      success: true,
+      role: {
+        id: role.id,
+        name: role.name,
+        color: role.hexColor,
+        position: role.position,
+        permissions: role.permissions.toArray(),
+        mentionable: role.mentionable,
+        hoisted: role.hoist,
+        managed: role.managed,
+        memberCount: role.members.size,
+        createdAt: role.createdAt.toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Error creating role:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update an existing role
+app.put('/api/guild/:guildId/roles/:roleId', async (req, res) => {
+  try {
+    const { guildId, roleId } = req.params;
+    const { name, color, permissions, hoisted, mentionable, position } = req.body;
+    
+    if (!client.isReady()) {
+      return res.status(503).json({ error: 'Bot is not ready' });
+    }
+    
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+    
+    const role = guild.roles.cache.get(roleId);
+    if (!role) {
+      return res.status(404).json({ error: 'Role not found' });
+    }
+    
+    // Check bot permissions
+    if (!guild.members.me.permissions.has('ManageRoles')) {
+      return res.status(403).json({ error: 'Bot lacks Manage Roles permission' });
+    }
+    
+    // Check role hierarchy
+    if (role.position >= guild.members.me.roles.highest.position) {
+      return res.status(403).json({ error: 'Cannot manage roles higher than or equal to bot\'s highest role' });
+    }
+    
+    // Update the role
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (color !== undefined) updateData.color = color;
+    if (permissions !== undefined) updateData.permissions = permissions;
+    if (hoisted !== undefined) updateData.hoist = hoisted;
+    if (mentionable !== undefined) updateData.mentionable = mentionable;
+    if (position !== undefined) updateData.position = position;
+    
+    await role.edit(updateData, 'Updated via Stoffel Bot admin panel');
+    
+    res.json({
+      success: true,
+      role: {
+        id: role.id,
+        name: role.name,
+        color: role.hexColor,
+        position: role.position,
+        permissions: role.permissions.toArray(),
+        mentionable: role.mentionable,
+        hoisted: role.hoist,
+        managed: role.managed,
+        memberCount: role.members.size,
+        createdAt: role.createdAt.toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Error updating role:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete a role
+app.delete('/api/guild/:guildId/roles/:roleId', async (req, res) => {
+  try {
+    const { guildId, roleId } = req.params;
+    
+    if (!client.isReady()) {
+      return res.status(503).json({ error: 'Bot is not ready' });
+    }
+    
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+    
+    const role = guild.roles.cache.get(roleId);
+    if (!role) {
+      return res.status(404).json({ error: 'Role not found' });
+    }
+    
+    // Check bot permissions
+    if (!guild.members.me.permissions.has('ManageRoles')) {
+      return res.status(403).json({ error: 'Bot lacks Manage Roles permission' });
+    }
+    
+    // Check role hierarchy
+    if (role.position >= guild.members.me.roles.highest.position) {
+      return res.status(403).json({ error: 'Cannot delete roles higher than or equal to bot\'s highest role' });
+    }
+    
+    // Prevent deletion of @everyone role
+    if (role.name === '@everyone') {
+      return res.status(400).json({ error: 'Cannot delete @everyone role' });
+    }
+    
+    await role.delete('Deleted via Stoffel Bot admin panel');
+    
+    res.json({ success: true, message: 'Role deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting role:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update user roles
+app.put('/api/guild/:guildId/members/:userId/roles', async (req, res) => {
+  try {
+    const { guildId, userId } = req.params;
+    const { roles, action } = req.body; // action: 'add', 'remove', 'set'
+    
+    if (!client.isReady()) {
+      return res.status(503).json({ error: 'Bot is not ready' });
+    }
+    
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+    
+    const member = guild.members.cache.get(userId);
+    if (!member) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+    
+    // Check bot permissions
+    if (!guild.members.me.permissions.has('ManageRoles')) {
+      return res.status(403).json({ error: 'Bot lacks Manage Roles permission' });
+    }
+    
+    // Validate roles and check hierarchy
+    const roleObjects = [];
+    for (const roleId of roles) {
+      const role = guild.roles.cache.get(roleId);
+      if (!role) {
+        return res.status(400).json({ error: `Role ${roleId} not found` });
+      }
+      
+      // Check role hierarchy
+      if (role.position >= guild.members.me.roles.highest.position) {
+        return res.status(403).json({ error: `Cannot manage role "${role.name}" - higher than bot's highest role` });
+      }
+      
+      roleObjects.push(role);
+    }
+    
+    try {
+      switch (action) {
+        case 'add':
+          await member.roles.add(roleObjects, 'Role added via Stoffel Bot admin panel');
+          break;
+        case 'remove':
+          await member.roles.remove(roleObjects, 'Role removed via Stoffel Bot admin panel');
+          break;
+        case 'set':
+          await member.roles.set(roleObjects, 'Roles updated via Stoffel Bot admin panel');
+          break;
+        default:
+          return res.status(400).json({ error: 'Invalid action. Use "add", "remove", or "set"' });
+      }
+      
+      // Return updated member info
+      res.json({
+        success: true,
+        member: {
+          id: member.user.id,
+          username: member.user.username,
+          nickname: member.nickname,
+          roles: member.roles.cache
+            .filter(role => role.name !== '@everyone')
+            .map(role => ({
+              id: role.id,
+              name: role.name,
+              color: role.hexColor
+            }))
+        }
+      });
+    } catch (discordError) {
+      console.error('Discord API error:', discordError);
+      res.status(500).json({ error: 'Failed to update user roles' });
+    }
+  } catch (error) {
+    console.error('Error updating user roles:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update user nickname
+app.put('/api/guild/:guildId/members/:userId/nickname', async (req, res) => {
+  try {
+    const { guildId, userId } = req.params;
+    const { nickname } = req.body;
+    
+    if (!client.isReady()) {
+      return res.status(503).json({ error: 'Bot is not ready' });
+    }
+    
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+    
+    const member = guild.members.cache.get(userId);
+    if (!member) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+    
+    // Check bot permissions
+    if (!guild.members.me.permissions.has('ManageNicknames')) {
+      return res.status(403).json({ error: 'Bot lacks Manage Nicknames permission' });
+    }
+    
+    // Check if trying to change bot owner's nickname
+    if (member.id === guild.ownerId) {
+      return res.status(403).json({ error: 'Cannot change server owner\'s nickname' });
+    }
+    
+    await member.setNickname(nickname || null, 'Nickname updated via Stoffel Bot admin panel');
+    
+    res.json({
+      success: true,
+      member: {
+        id: member.user.id,
+        username: member.user.username,
+        nickname: member.nickname
+      }
+    });
+  } catch (error) {
+    console.error('Error updating nickname:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Kick a member
+app.post('/api/guild/:guildId/members/:userId/kick', async (req, res) => {
+  try {
+    const { guildId, userId } = req.params;
+    const { reason } = req.body;
+    
+    if (!client.isReady()) {
+      return res.status(503).json({ error: 'Bot is not ready' });
+    }
+    
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+    
+    const member = guild.members.cache.get(userId);
+    if (!member) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+    
+    // Check bot permissions
+    if (!guild.members.me.permissions.has('KickMembers')) {
+      return res.status(403).json({ error: 'Bot lacks Kick Members permission' });
+    }
+    
+    // Check if trying to kick server owner
+    if (member.id === guild.ownerId) {
+      return res.status(403).json({ error: 'Cannot kick server owner' });
+    }
+    
+    // Check role hierarchy
+    if (member.roles.highest.position >= guild.members.me.roles.highest.position) {
+      return res.status(403).json({ error: 'Cannot kick member with higher or equal role' });
+    }
+    
+    await member.kick(reason || 'Kicked via Stoffel Bot admin panel');
+    
+    res.json({
+      success: true,
+      message: `Successfully kicked ${member.user.username} from the server`
+    });
+  } catch (error) {
+    console.error('Error kicking member:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Ban a member
+app.post('/api/guild/:guildId/members/:userId/ban', async (req, res) => {
+  try {
+    const { guildId, userId } = req.params;
+    const { reason, deleteMessageDays = 1 } = req.body;
+    
+    if (!client.isReady()) {
+      return res.status(503).json({ error: 'Bot is not ready' });
+    }
+    
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+    
+    const member = guild.members.cache.get(userId);
+    if (!member) {
+      // Try to ban by user ID even if not in server
+      try {
+        await guild.members.ban(userId, {
+          reason: reason || 'Banned via Stoffel Bot admin panel',
+          deleteMessageDays: Math.min(Math.max(deleteMessageDays, 0), 7)
+        });
+        
+        return res.json({
+          success: true,
+          message: `Successfully banned user ${userId}`
+        });
+      } catch (banError) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+    }
+    
+    // Check bot permissions
+    if (!guild.members.me.permissions.has('BanMembers')) {
+      return res.status(403).json({ error: 'Bot lacks Ban Members permission' });
+    }
+    
+    // Check if trying to ban server owner
+    if (member.id === guild.ownerId) {
+      return res.status(403).json({ error: 'Cannot ban server owner' });
+    }
+    
+    // Check role hierarchy
+    if (member.roles.highest.position >= guild.members.me.roles.highest.position) {
+      return res.status(403).json({ error: 'Cannot ban member with higher or equal role' });
+    }
+    
+    await member.ban({
+      reason: reason || 'Banned via Stoffel Bot admin panel',
+      deleteMessageDays: Math.min(Math.max(deleteMessageDays, 0), 7)
+    });
+    
+    res.json({
+      success: true,
+      message: `Successfully banned ${member.user.username} from the server`
+    });
+  } catch (error) {
+    console.error('Error banning member:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Timeout a member
+app.post('/api/guild/:guildId/members/:userId/timeout', async (req, res) => {
+  try {
+    const { guildId, userId } = req.params;
+    const { duration, reason } = req.body; // duration in milliseconds
+    
+    if (!client.isReady()) {
+      return res.status(503).json({ error: 'Bot is not ready' });
+    }
+    
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+    
+    const member = guild.members.cache.get(userId);
+    if (!member) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+    
+    // Check bot permissions
+    if (!guild.members.me.permissions.has('ModerateMembers')) {
+      return res.status(403).json({ error: 'Bot lacks Moderate Members permission' });
+    }
+    
+    // Check if trying to timeout server owner
+    if (member.id === guild.ownerId) {
+      return res.status(403).json({ error: 'Cannot timeout server owner' });
+    }
+    
+    // Check role hierarchy
+    if (member.roles.highest.position >= guild.members.me.roles.highest.position) {
+      return res.status(403).json({ error: 'Cannot timeout member with higher or equal role' });
+    }
+    
+    // Validate duration (Discord limits: max 28 days)
+    const maxDuration = 28 * 24 * 60 * 60 * 1000; // 28 days in ms
+    const timeoutDuration = Math.min(duration, maxDuration);
+    
+    await member.timeout(timeoutDuration, reason || 'Timed out via Stoffel Bot admin panel');
+    
+    res.json({
+      success: true,
+      message: `Successfully timed out ${member.user.username} for ${Math.round(timeoutDuration / (60 * 1000))} minutes`
+    });
+  } catch (error) {
+    console.error('Error timing out member:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Remove timeout from a member
+app.delete('/api/guild/:guildId/members/:userId/timeout', async (req, res) => {
+  try {
+    const { guildId, userId } = req.params;
+    
+    if (!client.isReady()) {
+      return res.status(503).json({ error: 'Bot is not ready' });
+    }
+    
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+    
+    const member = guild.members.cache.get(userId);
+    if (!member) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+    
+    // Check bot permissions
+    if (!guild.members.me.permissions.has('ModerateMembers')) {
+      return res.status(403).json({ error: 'Bot lacks Moderate Members permission' });
+    }
+    
+    await member.timeout(null, 'Timeout removed via Stoffel Bot admin panel');
+    
+    res.json({
+      success: true,
+      message: `Successfully removed timeout from ${member.user.username}`
+    });
+  } catch (error) {
+    console.error('Error removing timeout:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get user's subscribed servers only
 app.get('/api/user/guilds/:userId', async (req, res) => {
   if (!client.isReady()) {
@@ -1208,6 +1788,7 @@ app.get('/api/admin/music/:guildId', async (req, res) => {
       enabled: true,
       defaultVolume: 50,
       maxQueueSize: 100,
+      allowPlaylists: true,
       platforms: {
         youtube: true,
         spotify: true,
@@ -1219,14 +1800,21 @@ app.get('/api/admin/music/:guildId', async (req, res) => {
       },
       djMode: false,
       voteSkip: true,
+      voteSkipThreshold: 50,
+      maxSongDuration: 10,
+      announceSongs: true,
+      showNowPlaying: true,
       filters: {
         bassBoost: false,
         nightcore: false,
-        eightD: false
+        eightD: false,
+        vaporwave: false,
+        lofi: false
       },
       restrictions: {
         djRole: null,
-        allowedChannels: []
+        allowedChannels: [],
+        blockedChannels: []
       }
     };
     
@@ -1380,23 +1968,25 @@ app.get('/api/admin/analytics/:guildId', async (req, res) => {
       return res.status(404).json({ error: 'Guild not found' });
     }
     
-    // Generate mock analytics data for now
+    // Get real analytics data from StatisticsService
+    const realTimeStats = await client.statisticsService.getRealTimeStats(guildId);
+    
     const analytics = {
       overview: {
         totalMembers: guild.memberCount,
-        activeMembers: Math.floor(guild.memberCount * 0.3),
-        messagesLast24h: Math.floor(Math.random() * 1000) + 500,
-        commandsLast24h: Math.floor(Math.random() * 100) + 50
+        activeMembers: Math.floor(guild.memberCount * 0.3), // This could be enhanced with real activity tracking
+        messagesLast24h: realTimeStats.today.totalActions, // Using moderation actions as proxy for activity
+        commandsLast24h: realTimeStats.today.totalActions
       },
       commands: {
         mostUsed: [
-          { name: '/play', usage: Math.floor(Math.random() * 50) + 20 },
+          { name: '/play', usage: Math.floor(Math.random() * 50) + 20 }, // Keep music command stats as mock for now
           { name: '/skip', usage: Math.floor(Math.random() * 30) + 10 },
           { name: '/queue', usage: Math.floor(Math.random() * 25) + 5 },
-          { name: '/warn', usage: Math.floor(Math.random() * 10) + 2 },
-          { name: '/clear', usage: Math.floor(Math.random() * 15) + 3 }
+          { name: '/automod', usage: realTimeStats.today.totalActions },
+          { name: '/moderation', usage: Math.floor(realTimeStats.overall.totalActions / 30) } // Average daily
         ],
-        totalExecuted: Math.floor(Math.random() * 200) + 100
+        totalExecuted: Math.floor(Math.random() * 200) + 100 + realTimeStats.overall.totalActions
       },
       users: {
         topActive: guild.members.cache
@@ -1406,9 +1996,11 @@ app.get('/api/admin/analytics/:guildId', async (req, res) => {
             id: m.id,
             username: m.user.username,
             avatar: m.user.displayAvatarURL({ size: 64 }),
-            messages: Math.floor(Math.random() * 100) + 20,
-            voiceTime: Math.floor(Math.random() * 600) + 60
-          }))
+            messages: Math.floor(Math.random() * 100) + 20, // Keep as mock for now
+            voiceTime: Math.floor(Math.random() * 600) + 60  // Keep as mock for now
+          })),
+        // Add real violators data (anonymized)
+        topViolators: realTimeStats.top.violators
       },
       channels: {
         mostActive: guild.channels.cache
@@ -1417,26 +2009,74 @@ app.get('/api/admin/analytics/:guildId', async (req, res) => {
           .map(c => ({
             id: c.id,
             name: c.name,
-            messages: Math.floor(Math.random() * 200) + 50
-          }))
+            messages: Math.floor(Math.random() * 200) + 50 // Keep as mock for now
+          })),
+        // Add real moderation hotspots
+        moderationHotspots: realTimeStats.top.channels.map(ch => {
+          const channel = guild.channels.cache.get(ch.channelId);
+          return {
+            id: ch.channelId,
+            name: channel ? channel.name : 'Unknown Channel',
+            violationCount: ch.count
+          };
+        })
       },
       moderation: {
-        actionsLast24h: Math.floor(Math.random() * 10),
-        warnings: Math.floor(Math.random() * 15),
-        kicks: Math.floor(Math.random() * 3),
-        bans: Math.floor(Math.random() * 2),
-        automodActions: Math.floor(Math.random() * 20)
+        actionsLast24h: realTimeStats.today.totalActions,
+        totalActions: realTimeStats.overall.totalActions,
+        averageDaily: Math.round(realTimeStats.overall.averageDaily * 100) / 100,
+        trend: realTimeStats.overall.trend,
+        violationsByType: realTimeStats.today.violationTypes,
+        actionsByType: realTimeStats.today.actionTypes,
+        topViolation: realTimeStats.top.violations,
+        charts: {
+          daily: realTimeStats.charts.daily,
+          weekly: realTimeStats.charts.weekly,
+          violations: realTimeStats.charts.violations,
+          actions: realTimeStats.charts.actions
+        }
       },
       performance: {
         uptime: Math.floor(process.uptime()),
         memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-        responseTime: Math.floor(Math.random() * 50) + 10,
+        responseTime: Math.floor(Math.random() * 50) + 10, // Keep as mock - would need request timing
         ping: Math.round(client.ws.ping)
       }
     };
     
     res.json({ analytics, timeRange });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Moderation Statistics API
+app.get('/api/admin/moderation/statistics/:guildId', async (req, res) => {
+  try {
+    const { guildId } = req.params;
+    
+    if (!client.isReady()) {
+      return res.status(503).json({ error: 'Bot is not ready' });
+    }
+    
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      return res.status(404).json({ error: 'Guild not found' });
+    }
+    
+    // Get comprehensive moderation statistics
+    const stats = await client.statisticsService.getRealTimeStats(guildId);
+    const summary = await client.statisticsService.getStatsSummary(guildId);
+    
+    res.json({ 
+      success: true, 
+      statistics: {
+        ...stats,
+        summary
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching moderation statistics:', error);
     res.status(500).json({ error: error.message });
   }
 });

@@ -1,6 +1,8 @@
 const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 const { Player } = require('discord-player');
 const { CommandManager } = require('./commands');
+const ModerationService = require('./services/moderation-service');
+const StatisticsService = require('./services/statistics-service');
 const { handleRegistrationButton, handleRegistrationModalSubmit } = require('./handlers/registration-handler');
 const { 
   handleRegistrationStart,
@@ -24,6 +26,12 @@ const client = new Client({
 
 // Initialize command manager
 client.commandManager = new CommandManager();
+
+// Initialize moderation service
+client.moderationService = new ModerationService();
+
+// Initialize statistics service
+client.statisticsService = new StatisticsService();
 
 // Initialize Discord Player
 const player = Player.singleton(client);
@@ -309,7 +317,7 @@ const {
   handleMessageBulkDelete: logMessageBulkDelete 
 } = require('./commands/list/logging');
 
-// Auto-moderation for spam and fake links
+// Comprehensive auto-moderation system
 client.on('messageCreate', async message => {
   // Message logging (for all messages, including bots)
   try {
@@ -355,23 +363,43 @@ client.on('messageCreate', async message => {
     
     console.log(`[AUTOMOD DEBUG] Processing message: "${message.content}" from ${message.author.tag}`);
     
-    // Load spam detection logic directly
-    const detection = detectSpam(message.content);
-    console.log(`[AUTOMOD DEBUG] Detection result:`, detection);
+    // Use comprehensive moderation service
+    const attachments = message.attachments.map(att => ({
+      name: att.name,
+      url: att.url,
+      size: att.size
+    }));
     
-    if (detection.isSpam) {
-      console.log(`[AUTOMOD] Spam detected in ${message.guild.name}: ${message.content}`);
+    const analysis = await client.moderationService.analyzeMessage(message.content, attachments, config);
+    console.log(`[AUTOMOD DEBUG] Analysis result:`, analysis);
+    
+    if (analysis.isViolation) {
+      console.log(`[AUTOMOD] Violations detected in ${message.guild.name}: ${analysis.violations.join(', ')}`);
       
       try {
         // Delete the message
         await message.delete();
         
+        // Record moderation statistics
+        try {
+          await client.statisticsService.recordMessageAction(
+            message.guild.id,
+            message.author.id,
+            message.channel.id,
+            analysis.violations,
+            analysis.actions.map(a => a.type),
+            analysis.confidence
+          );
+        } catch (statsError) {
+          console.error('Failed to record moderation statistics:', statsError);
+        }
+        
         // Get server language
         const serverLang = await getServerLanguage(message.guild.id);
         
         const warningMessages = {
-          en: `⚠️ **${message.author}**, your message was automatically deleted for spam/inappropriate content. You have been timed out for 5 minutes.`,
-          pt: `⚠️ **${message.author}**, sua mensagem foi automaticamente removida por spam/conteúdo inadequado. Você foi silenciado por 5 minutos.`
+          en: `⚠️ **${message.author}**, your message was automatically deleted for violating server policies. You have been timed out for 5 minutes.`,
+          pt: `⚠️ **${message.author}**, sua mensagem foi automaticamente removida por violar as políticas do servidor. Você foi silenciado por 5 minutos.`
         };
         
         // Send warning message to channel (will auto-delete after 10 seconds)
@@ -388,9 +416,35 @@ client.on('messageCreate', async message => {
           }
         }, 10000);
         
-        // Timeout the user for 5 minutes
-        if (message.member && message.guild.members.me.permissions.has('ModerateMembers')) {
-          await message.member.timeout(5 * 60 * 1000, 'Automatic moderation: Spam detected');
+        // Execute moderation actions
+        for (const action of analysis.actions) {
+          try {
+            switch (action.type) {
+              case 'timeout':
+                if (message.member && message.guild.members.me.permissions.has('ModerateMembers')) {
+                  await message.member.timeout(action.duration, `Automatic moderation: ${analysis.violations.join(', ')}`);
+                }
+                break;
+              case 'warn':
+                // Add to warning system if implemented
+                break;
+              case 'kick':
+                if (message.member && message.guild.members.me.permissions.has('KickMembers')) {
+                  await message.member.kick(`Automatic moderation: ${analysis.violations.join(', ')}`);
+                }
+                break;
+              case 'ban':
+                if (message.member && message.guild.members.me.permissions.has('BanMembers')) {
+                  await message.member.ban({ 
+                    reason: `Automatic moderation: ${analysis.violations.join(', ')}`,
+                    deleteMessageDays: 1 
+                  });
+                }
+                break;
+            }
+          } catch (error) {
+            console.error(`Failed to execute action ${action.type}:`, error);
+          }
         }
         
         // Log to moderation channel if configured
@@ -398,10 +452,23 @@ client.on('messageCreate', async message => {
           const logChannel = message.guild.channels.cache.get(config.logChannelId);
           if (logChannel) {
             const { EmbedBuilder } = require('discord.js');
+            
+            // Create color based on severity
+            const severityColors = {
+              low: '#FFA500',    // Orange
+              medium: '#F44336', // Red  
+              high: '#9C27B0',   // Purple
+              critical: '#000000' // Black
+            };
+            
+            const severity = analysis.confidence >= 0.8 ? 'critical' : 
+                           analysis.confidence >= 0.6 ? 'high' :
+                           analysis.confidence >= 0.4 ? 'medium' : 'low';
+            
             const logEmbed = new EmbedBuilder()
-              .setColor('#F44336')
-              .setTitle('🛡️ AutoMod Action')
-              .setDescription('**Spam message detected and removed**')
+              .setColor(severityColors[severity])
+              .setTitle('🛡️ Advanced AutoMod Action')
+              .setDescription(`**${analysis.violations.join(', ')} detected and handled**`)
               .addFields(
                 {
                   name: '👤 User',
@@ -415,7 +482,7 @@ client.on('messageCreate', async message => {
                 },
                 {
                   name: '📊 Confidence',
-                  value: `${Math.round(detection.confidence * 100)}%`,
+                  value: `${Math.round(analysis.confidence * 100)}% (${severity.toUpperCase()})`,
                   inline: true
                 },
                 {
@@ -424,46 +491,44 @@ client.on('messageCreate', async message => {
                   inline: false
                 },
                 {
-                  name: '⚠️ Issues Detected',
-                  value: detection.reasons.map(r => `• ${r}`).join('\n'),
+                  name: '⚠️ Violations Detected',
+                  value: analysis.violations.map(v => `• ${v}`).join('\n'),
                   inline: false
                 },
                 {
                   name: '⚡ Actions Taken',
-                  value: '• Message deleted\n• User timed out (5 minutes)',
+                  value: analysis.actions.map(a => `• ${a.type}${a.duration ? ` (${a.duration/1000/60} min)` : ''}`).join('\n') || '• Message deleted',
                   inline: false
                 }
               )
               .setTimestamp()
-              .setFooter({ text: `User ID: ${message.author.id}` });
+              .setFooter({ text: `User ID: ${message.author.id} | Severity: ${severity.toUpperCase()}` });
             
             await logChannel.send({ embeds: [logEmbed] });
           }
         }
         
-        // Send warning to user via DM
+        // Send detailed warning to user via DM
         try {
           const { EmbedBuilder } = require('discord.js');
           
           const dmMessages = {
             en: {
-              title: '⚠️ Moderation Warning',
-              description: `Your message in **${message.guild.name}** was automatically removed for violating our spam policy.`,
-              detectedIssues: '📋 Detected Issues',
-              timeout: '⏰ Timeout',
-              timeoutValue: 'You have been timed out for 5 minutes.',
-              appeal: '💡 Appeal',
-              appealValue: 'If you believe this was a mistake, please contact the server moderators.',
+              title: '⚠️ Advanced Moderation Warning',
+              description: `Your message in **${message.guild.name}** was automatically removed for violating server policies.`,
+              detectedIssues: '📋 Policy Violations',
+              actions: '⚡ Actions Taken',
+              appeal: '💡 Appeal Process',
+              appealValue: 'If you believe this was a mistake, please contact the server moderators with your User ID.',
               footer: 'Please follow server rules and Discord Terms of Service'
             },
             pt: {
-              title: '⚠️ Aviso de Moderação',
-              description: `Sua mensagem em **${message.guild.name}** foi automaticamente removida por violar nossa política de spam.`,
-              detectedIssues: '📋 Problemas Detectados',
-              timeout: '⏰ Silenciamento',
-              timeoutValue: 'Você foi silenciado por 5 minutos.',
-              appeal: '💡 Recurso',
-              appealValue: 'Se você acredita que foi um erro, entre em contato com os moderadores do servidor.',
+              title: '⚠️ Aviso de Moderação Avançada',
+              description: `Sua mensagem em **${message.guild.name}** foi automaticamente removida por violar as políticas do servidor.`,
+              detectedIssues: '📋 Violações de Política',
+              actions: '⚡ Ações Tomadas',
+              appeal: '💡 Processo de Recurso',
+              appealValue: 'Se você acredita que foi um erro, entre em contato com os moderadores do servidor com seu ID de usuário.',
               footer: 'Por favor, siga as regras do servidor e os Termos de Serviço do Discord'
             }
           };
@@ -477,12 +542,12 @@ client.on('messageCreate', async message => {
             .addFields(
               {
                 name: msg.detectedIssues,
-                value: detection.reasons.map(r => `• ${r}`).join('\n'),
+                value: analysis.violations.map(v => `• ${v}`).join('\n'),
                 inline: false
               },
               {
-                name: msg.timeout,
-                value: msg.timeoutValue,
+                name: msg.actions,
+                value: analysis.actions.map(a => `• ${a.type}${a.duration ? ` (${a.duration/1000/60} minutes)` : ''}`).join('\n') || '• Message deleted',
                 inline: false
               },
               {
@@ -491,7 +556,7 @@ client.on('messageCreate', async message => {
                 inline: false
               }
             )
-            .setFooter({ text: msg.footer });
+            .setFooter({ text: `${msg.footer} | User ID: ${message.author.id}` });
           
           await message.author.send({ embeds: [warningEmbed] });
         } catch {
@@ -499,17 +564,160 @@ client.on('messageCreate', async message => {
         }
         
       } catch (error) {
-        console.error('Error handling spam message:', error);
+        console.error('Error handling moderation violation:', error);
       }
     }
     
   } catch (error) {
-    console.error('Error in automod:', error);
+    console.error('Error in comprehensive automod:', error);
   }
   
   // Legacy ping command
   if (message.content === '!ping') {
     message.reply('Pong! (Try using `/ping` for the new slash command version)');
+  }
+});
+
+// Raid protection system for guild member joins
+client.on('guildMemberAdd', async member => {
+  try {
+    const fs = require('fs').promises;
+    const path = require('path');
+    const configPath = path.join(__dirname, 'data/automod-configs.json');
+    
+    let config = null;
+    try {
+      const data = await fs.readFile(configPath, 'utf8');
+      const configs = JSON.parse(data);
+      config = configs[member.guild.id];
+    } catch (error) {
+      console.log(`[RAID PROTECTION] No config found for ${member.guild.name}`);
+      return;
+    }
+    
+    if (!config || !config.enabled) {
+      return;
+    }
+    
+    console.log(`[RAID PROTECTION] New member joined ${member.guild.name}: ${member.user.tag}`);
+    
+    // Analyze for potential raid activity
+    const raidAnalysis = await client.moderationService.analyzeRaidPattern(member.guild.id, member.user);
+    
+    if (raidAnalysis.isRaid) {
+      console.log(`[RAID PROTECTION] Raid detected in ${member.guild.name}! Confidence: ${Math.round(raidAnalysis.confidence * 100)}%`);
+      
+      // Record raid protection statistics
+      try {
+        await client.statisticsService.recordRaidAction(
+          member.guild.id,
+          member.user.id,
+          raidAnalysis.reasons,
+          raidAnalysis.actions.map(a => a.type)
+        );
+      } catch (statsError) {
+        console.error('Failed to record raid protection statistics:', statsError);
+      }
+      
+      try {
+        // Execute raid protection actions
+        for (const action of raidAnalysis.actions) {
+          switch (action.type) {
+            case 'ban':
+              if (member.guild.members.me.permissions.has('BanMembers')) {
+                await member.ban({ 
+                  reason: `Automatic raid protection: ${raidAnalysis.reasons.join(', ')}`,
+                  deleteMessageDays: 1 
+                });
+                console.log(`[RAID PROTECTION] Banned ${member.user.tag} for raid activity`);
+              }
+              break;
+            case 'kick':
+              if (member.guild.members.me.permissions.has('KickMembers')) {
+                await member.kick(`Automatic raid protection: ${raidAnalysis.reasons.join(', ')}`);
+                console.log(`[RAID PROTECTION] Kicked ${member.user.tag} for raid activity`);
+              }
+              break;
+            case 'lockdown':
+              // Implement server lockdown if needed
+              console.log(`[RAID PROTECTION] Server lockdown recommended for ${member.guild.name}`);
+              break;
+          }
+        }
+        
+        // Log to moderation channel if configured
+        if (config.logChannelId) {
+          const logChannel = member.guild.channels.cache.get(config.logChannelId);
+          if (logChannel) {
+            const { EmbedBuilder } = require('discord.js');
+            
+            const logEmbed = new EmbedBuilder()
+              .setColor('#FF0000')
+              .setTitle('🚨 Raid Protection Activated')
+              .setDescription('**Potential raid activity detected and handled**')
+              .addFields(
+                {
+                  name: '👤 User',
+                  value: `${member.user} (${member.user.tag})`,
+                  inline: true
+                },
+                {
+                  name: '📊 Confidence',
+                  value: `${Math.round(raidAnalysis.confidence * 100)}%`,
+                  inline: true
+                },
+                {
+                  name: '⏰ Account Age',
+                  value: `${Math.floor((Date.now() - member.user.createdTimestamp) / (1000 * 60 * 60 * 24))} days`,
+                  inline: true
+                },
+                {
+                  name: '⚠️ Raid Indicators',
+                  value: raidAnalysis.reasons.map(r => `• ${r}`).join('\n'),
+                  inline: false
+                },
+                {
+                  name: '⚡ Actions Taken',
+                  value: raidAnalysis.actions.map(a => `• ${a.type}`).join('\n') || '• User monitored',
+                  inline: false
+                }
+              )
+              .setTimestamp()
+              .setFooter({ text: `User ID: ${member.user.id}` });
+            
+            await logChannel.send({ embeds: [logEmbed] });
+          }
+        }
+        
+        // Send alert to server admins if high confidence raid
+        if (raidAnalysis.confidence >= 0.8) {
+          const adminRole = member.guild.roles.cache.find(role => 
+            role.name.toLowerCase().includes('admin') || 
+            role.name.toLowerCase().includes('moderator') ||
+            role.permissions.has('Administrator')
+          );
+          
+          if (adminRole && config.logChannelId) {
+            const alertChannel = member.guild.channels.cache.get(config.logChannelId);
+            if (alertChannel) {
+              await alertChannel.send({
+                content: `${adminRole} 🚨 **HIGH CONFIDENCE RAID DETECTED** - Immediate attention required!`,
+                allowedMentions: { roles: [adminRole.id] }
+              });
+            }
+          }
+        }
+        
+      } catch (error) {
+        console.error('Error executing raid protection actions:', error);
+      }
+    } else {
+      // Normal join, just log for monitoring
+      console.log(`[RAID PROTECTION] Normal join detected for ${member.user.tag} in ${member.guild.name}`);
+    }
+    
+  } catch (error) {
+    console.error('Error in raid protection system:', error);
   }
 });
 
